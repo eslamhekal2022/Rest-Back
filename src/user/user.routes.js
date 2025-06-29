@@ -1,5 +1,5 @@
 import express from "express";
-import { signUp ,signIn, getUsers, deleteUser, updateUserRole, getUser, updateUserImage} from "./user.controller.js";
+import { signUp ,signIn, getUsers, deleteUser, updateUserRole, getUser, updateUserImage, ForgetPassword} from "./user.controller.js";
 import { authMiddleware, isAdmin } from "../../MiddleWare/MiddleWare.js";
 import upload from "../../MiddleWare/uploadImages.js";
 
@@ -13,5 +13,6 @@ userRouter.post("/deleteUser/:id", deleteUser);
 userRouter.put('/update-role/:userId', updateUserRole);
 userRouter.get("/getuser/:id", getUser);
 userRouter.post("/updateUserImage/:id",upload.single("image"),authMiddleware, updateUserImage);
+userRouter.post("/forgetPassword", ForgetPassword);
 
 export default userRouter;

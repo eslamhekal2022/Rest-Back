@@ -13,7 +13,7 @@ export const addToCart=  async (req, res) => {
 
     const parsedQuantity = Number(quantity) || 1;
     if (parsedQuantity <= 0) {
-      return res.status(400).json({ message: "Quantity must be at least 1." });
+      return res.status(400).json({ message:"Quantity must be at least 1." });
     }
 
     const product = await ProductModel.findById(productId);
@@ -26,7 +26,7 @@ export const addToCart=  async (req, res) => {
       return res.status(400).json({ message: "Invalid size for this product." });
     }
 
-    let cart = await CartModel.findOne({ userId });
+    let cart = await CartModel.findOne({userId});
 
     if (!cart) {
       cart = new CartModel({

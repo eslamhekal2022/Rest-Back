@@ -168,8 +168,6 @@ res.status(200).json({message:"userAho",success:true,data:user})
  }
 }
 
-
-
 export const updateUserImage = async (req, res) => {
   try {
     const userId=req.userId
@@ -185,7 +183,7 @@ export const updateUserImage = async (req, res) => {
 
     const updatedUser = await userModel.findByIdAndUpdate(
       id,
-      { image: `/uploads/${req.file.filename}` }, // نحفظ المسار النسبي
+      { image: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}` }, 
       { new: true }
     );
 
@@ -199,3 +197,31 @@ export const updateUserImage = async (req, res) => {
   }
 };
 
+
+export const ForgetPassword = async (req, res) => {
+  const { email, newPassword } = req.body;
+  try {
+    
+    const user = await userModel.findOne({ email });
+    
+    if (!user) {
+      return res.status(400).json({ message: "User not found", success: false });
+    }
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "Please enter your new password", success: false });
+    }
+
+    const hashNewPass = await bcrypt.hash(newPassword, 10);
+    
+    user.password = hashNewPass;
+
+    await user.save();
+
+    return res.status(200).json({ message: "Your password has been updated successfully", success: true });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error", success: false });
+  }
+};

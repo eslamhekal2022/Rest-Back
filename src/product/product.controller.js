@@ -53,12 +53,32 @@ export const addProduct = async (req, res) => {
 };
 
 
-export const getAllProducts=async (req, res) => {
-  const allProducts = await ProductModel.find().populate("reviews.userId", "name ")
+export const getAllProducts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
 
-  const count = allProducts.length
-  res.status(200).json({message: "All products",success: true,data:allProducts,count})
-}
+    const [allProducts, total] = await Promise.all([
+      ProductModel.find()
+        .populate("reviews.userId", "name")
+        .skip(skip)
+        .limit(limit).sort({createdAt:-1}),
+      ProductModel.countDocuments()
+    ]);
+
+    res.status(200).json({
+      message: "All products",
+      success: true,
+      data: allProducts,
+      count: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Error fetching products" });
+  }
+};
 
 export const removeProduct = async (req, res) => {
   try {
