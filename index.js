@@ -58,13 +58,13 @@ app.use(cors({
 app.use(morgan("dev"));
 
 // ✅ Routes
-app.use("/api/users", userRouter);
-app.use("/api/products", ProductRouter);
-app.use("/api/cart", CartRouter);
-app.use("/api/wishlist", WishListRouter);
-app.use("/api/orders", OrderRouter);
-app.use("/api/reviews", userReviews);
-app.use("/api/contacts", ContactRouter);
+app.use(userRouter);
+app.use(ProductRouter);
+app.use(CartRouter);
+app.use(WishListRouter);
+app.use(OrderRouter);
+app.use(userReviews);
+app.use(ContactRouter);
 
 // ✅ Home route
 app.get("/", (req, res) => {
