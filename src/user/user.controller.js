@@ -2,6 +2,7 @@ import { userModel } from "../../Model/user.model.js";
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 import upload from "../../MiddleWare/uploadImages.js";
+import webpush from 'web-push';
 
 
 
@@ -84,6 +85,8 @@ export const signIn = async (req, res) => {
     try {
       const allUsers = await userModel.find().select("-password");
 
+      const keys = webpush.generateVAPIDKeys();
+      console.log("KeyGenerate",keys);
       const countUsers=allUsers.length
       res.status(200).json({
         message: "All users retrieved successfully",
