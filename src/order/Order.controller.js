@@ -7,90 +7,77 @@ export const checkOut = async (req, res) => {
     const userId = req.userId;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const cart = await CartModel.findOne({ userId }).populate("products.productId");
-
+    const cart = await CartModel.findOne({ userId }).populate("products.productId").lean();
     if (!cart || cart.products.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
     }
 
     let totalPrice = 0;
+    const orderProducts = [];
 
-    // بناء مصفوفة المنتجات للطلب مع سعر الحجم المناسب
-    const orderProducts = cart.products.map(item => {
+    for (const item of cart.products) {
       const product = item.productId;
-      if (!product) return null;
+      if (!product) continue;
 
-      // نلاقي السعر المناسب حسب الحجم من المصفوفة sizes
-      const sizeObj = product.sizes.find(s => s.size === item.size);
+      const sizeData = product.sizes.find(s => s.size === item.size);
+      const unitPrice = sizeData?.price ?? 0;
+      const quantity = item.quantity || 1;
 
-      // لو الحجم مش موجود، السعر يساوي 0 (ممكن تعالج الخطأ هنا حسب الحاجة)
-      const price = sizeObj ? sizeObj.price : 0;
+      totalPrice += unitPrice * quantity;
 
-      const subTotal = price * (item.quantity || 1);
-      totalPrice += subTotal;
-
-      return {
+      orderProducts.push({
         productId: product._id,
         name: product.name,
         image: product.images?.[0] || "",
         size: item.size,
-        price,  // سعر الوحدة حسب الحجم
-        quantity: item.quantity || 1
-      };
-    }).filter(Boolean); // تصفي العناصر null لو حصل
+        price: unitPrice,
+        quantity
+      });
+    }
 
     if (orderProducts.length === 0) {
       return res.status(400).json({ message: "No valid products in cart" });
     }
 
-    const newOrder = new OrderModel({
+    const newOrder = await OrderModel.create({
       userId,
       products: orderProducts,
       totalPrice,
       status: "pending"
     });
 
-    await newOrder.save();
+    await CartModel.updateOne({ userId }, { $set: { products: [] } });
 
-    // بعد حفظ الطلب، نمسح الكارت
-    cart.products = [];
-    await cart.save();
-
-    res.status(201).json({
-      message: "Order placed successfully",
-      success: true,
-      order: newOrder
-    });
+    res.status(201).json({ success: true, message: "Order placed successfully", order: newOrder });
 
   } catch (err) {
-    console.error("Checkout error:", err);
-    res.status(500).json({ message: "Checkout failed", success: false, error: err.message });
+    console.error("❌ Checkout error:", err);
+    res.status(500).json({ success: false, message: "Checkout failed", error: err.message });
   }
 };
 
 
 export const getAllOrders = async (req, res) => {
   try {
-    const orders = await OrderModel.find({})
-      .populate('userId', 'name email phone') // لو حابب تعرض بيانات المستخدم
-      .populate('products.productId'); // جلب تفاصيل المنتجات
+    const orders = await OrderModel.find()
+      .populate('userId', 'name email phone')
+      .sort({ createdAt: -1 })
+      .lean();
 
-      const count=orders.length
     res.status(200).json({
-      message: "All orders retrieved successfully.",
       success: true,
+      message: "All orders retrieved successfully.",
       data: orders,
-      count
+      count: orders.length
     });
   } catch (error) {
     res.status(500).json({
-      message: "Failed to retrieve orders.",
       success: false,
+      message: "Failed to retrieve orders.",
       error: error.message
     });
   }
 };
-
 
 
 export const getUserOrders = async (req, res) => {
@@ -150,14 +137,18 @@ export const updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
+    if (!status) {
+      return res.status(400).json({ message: "Status is required", success: false });
+    }
+
     const updatedOrder = await OrderModel.findByIdAndUpdate(
       orderId,
       { status },
-      { new:true}
+      { new: true }
     );
 
     if (!updatedOrder) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res.status(404).json({ message: "Order not found", success: false });
     }
 
     res.status(200).json({ success: true, message: "Order status updated", data: updatedOrder });
@@ -166,26 +157,21 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-
 export const deleteAllOrders = async (req, res) => {
   try {
     if (req.userRole !== "admin") {
       return res.status(403).json({ message: "Unauthorized", success: false });
     }
 
-    await OrderModel.deleteMany({});
-    res.status(200).json({
-      message: "All orders have been deleted successfully.",
-      success: true,
-    });
+    await OrderModel.deleteMany();
+    res.status(200).json({ success: true, message: "All orders have been deleted." });
   } catch (error) {
-    res.status(500).json({
-      message: "Failed to delete orders.",
-      success: false,
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Failed to delete orders", error: error.message });
   }
 };
+
+
+
 export const deleteorder = async (req, res) => {
   const {id}=req.params
 try {
@@ -197,12 +183,17 @@ res.status(200).json({message:"sex delete",product,success:true})
 }
 
 export const OrderDet = async (req, res) => {
-try {
-  const {id}=req.params
-  const order=await OrderModel.findById(id)
+  try {
+    const { id } = req.params;
+    const order = await OrderModel.findById(id).populate('userId', 'name email');
 
-  res.status(200).json({message:"Takeorder",success:true,data:order})
-} catch (error) {
-  console.log(error)
-}
-}
+    if (!order) {
+      return res.status(404).json({ message: "Order not found", success: false });
+    }
+
+    res.status(200).json({ message: "Order details retrieved", success: true, data: order });
+  } catch (error) {
+    console.error("❌ OrderDet error:", error);
+    res.status(500).json({ message: "Failed to retrieve order", success: false });
+  }
+};
