@@ -84,7 +84,7 @@ export const signIn = async (req, res) => {
   export const getUsers = async (req, res) => {
     try {
       const allUsers = await userModel.find().select("-password");
-
+console.log("AllUsers",allUsers)
       const keys = webpush.generateVAPIDKeys();
       console.log("KeyGenerate",keys);
       const countUsers=allUsers.length

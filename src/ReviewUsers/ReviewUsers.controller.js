@@ -34,7 +34,7 @@ export const AddReview = async (req, res) => {
 export const getAllReview = async (req, res) => {
   try {
     const allReviews = await ReviewUsers.find()
-      .populate("userId", "name email")
+      .populate("userId", "name email image")
       .sort({ createdAt: -1 })
       .lean();
 

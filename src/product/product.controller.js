@@ -55,25 +55,17 @@ export const addProduct = async (req, res) => {
 
 export const getAllProducts = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 6;
-    const skip = (page - 1) * limit;
+  
 
-    const [allProducts, total] = await Promise.all([
-      ProductModel.find()
-        .populate("reviews.userId", "name")
-        .skip(skip)
-        .limit(limit).sort({createdAt:-1}),
-      ProductModel.countDocuments()
-    ]);
+     const allProducts= await ProductModel.find().populate("reviews.userId", "name")
+
+    const total=allProducts.length
 
     res.status(200).json({
       message: "All products",
       success: true,
       data: allProducts,
       count: total,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit)
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "Error fetching products" });
@@ -157,6 +149,7 @@ export const getFilterCat= async (req, res) => {
 
   try {
     const products = await ProductModel.find({ category: category });
+    console.log("Cat-category",category)
     res.status(200).json({data:products,success:true});
   } catch (error) {
     res.status(500).json({ message: 'حدث خطأ أثناء جلب المنتجات', error });
@@ -175,11 +168,6 @@ export const getTrending=async (req, res) => {
   }
 }
 
-
-// controllers/reviewController.js
-
-
-// إضافة مراجعة
 export const addReviewToProduct = async (req, res) => {
   const { rating, comment } = req.body;
   const { productId } = req.params;
@@ -224,7 +212,6 @@ export const addReviewToProduct = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 export const editReview = async (req, res) => {
   const { productId, reviewId } = req.params;
@@ -306,5 +293,64 @@ export const changeCat=async (req, res) => {
     res.json({ success: true, data: updatedProduct });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+
+
+// Chart js API
+
+export const stateCat=async (req, res) => {
+  try {
+    const data = await ProductModel.aggregate([
+      { $group: { _id: "$category", count: { $sum: 1 } } }
+    ]);
+    res.json({data,success:true});
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+
+export const stateRating=async (req, res) => {
+  try {
+    const products = await ProductModel.find({}, { name: 1, averageRating: 1 });
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+export const stateMonthly= async (req, res) => {
+  try {
+    const data = await ProductModel.aggregate([
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}
+
+export const stateSizes=async (req, res) => {
+  try {
+    const data = await ProductModel.aggregate([
+      { $unwind: "$sizes" },
+      {
+        $group: {
+          _id: "$sizes.size",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 }

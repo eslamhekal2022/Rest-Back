@@ -1,4 +1,4 @@
-import { addProduct, addReviewToProduct, changeCat, deleteReview, editReview, getAllProducts, getCategoryProduct, getFilterCat, productDetails, removeProduct, searchProducts } from "./product.controller.js"
+import { stateCat,stateRating,stateMonthly,stateSizes,addProduct, addReviewToProduct, changeCat, deleteReview, editReview, getAllProducts, getCategoryProduct, getFilterCat, productDetails, removeProduct, searchProducts } from "./product.controller.js"
 import express from "express";
 import multer from "multer";
 import { authMiddleware } from "../../MiddleWare/MiddleWare.js";
@@ -28,6 +28,10 @@ ProductRouter.put("/editProductReview/:productId/:reviewId", authMiddleware, edi
 ProductRouter.delete("/deleteProductReview/:productId/:reviewId", authMiddleware, deleteReview);
 ProductRouter.put("/changeCat/:id", changeCat);
 
-
+// Chart_Routes 
+ProductRouter.get("/stateCat",stateCat)
+ProductRouter.get("/stateRating",stateRating)
+ProductRouter.get("/stateMonthly",stateMonthly)
+ProductRouter.get("/stateSizes",stateSizes)
 
 export default ProductRouter;
